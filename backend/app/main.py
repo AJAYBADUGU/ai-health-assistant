@@ -11,8 +11,8 @@ Rules:
 - Be calm and supportive
 - Suggest consulting a doctor if symptoms persist
 
-User: {request.message}
-Assistant:
+Question: {request.message}
+Answer:
 """
 
     try:
@@ -22,40 +22,37 @@ Assistant:
             json={
                 "inputs": prompt,
                 "parameters": {
-                    "max_new_tokens": 150,
-                    "temperature": 0.7
+                    "max_new_tokens": 120,
+                    "temperature": 0.5
                 }
             },
-            timeout=25  # ⬅️ IMPORTANT
+            timeout=20
         )
 
         if response.status_code != 200:
             return {
-                "reply": (
-                    "I'm currently experiencing high traffic. "
-                    "Please try again in a few moments."
-                )
+                "reply": "The AI service is busy right now. Please try again shortly."
             }
 
         result = response.json()
 
-        ai_text = result[0]["generated_text"]
-        ai_reply = ai_text.split("Assistant:")[-1].strip()
+        # ✅ FLAN-T5 RESPONSE FORMAT
+        # result = [{ "generated_text": "..." }]
+        if isinstance(result, list) and "generated_text" in result[0]:
+            ai_reply = result[0]["generated_text"].strip()
+        else:
+            return {
+                "reply": "I couldn't generate a response right now. Please try again."
+            }
 
         return {"reply": ai_reply}
 
     except requests.exceptions.Timeout:
         return {
-            "reply": (
-                "The AI is taking longer than usual to respond. "
-                "Please try again shortly."
-            )
+            "reply": "The AI is taking longer than usual. Please try again shortly."
         }
 
-    except Exception:
+    except Exception as e:
         return {
-            "reply": (
-                "Something went wrong while generating a response. "
-                "Please try again."
-            )
+            "reply": "Something went wrong while generating the response."
         }
